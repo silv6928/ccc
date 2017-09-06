@@ -6,6 +6,7 @@ Created on Tue Jun 20 15:37:26 2017
 """
 
 import pandas as pd
+import numpy as np
 
 df = pd.read_csv("C:/Users/Anthony Silva/silvat/ccc/data/total.csv", sep=",", index_col=0)
 # Need to change calling numbers to objects without scientific notation.
@@ -14,7 +15,6 @@ df = pd.read_csv("C:/Users/Anthony Silva/silvat/ccc/data/total.csv", sep=",", in
 #Data Preprocessing
 
 # Set up Target Variable
-
 df = df.loc[(df.disposition == "ANS") | (df.disposition == "ABAN"), :]
 df["target"] = 0
 df.loc[df.disposition == "ABAN", "target"] = 1
@@ -71,17 +71,61 @@ df = pd.concat([df, call_area_code], axis=1)
 del df["call_area_code"]
 
 # Schedule Features
+# Number of Employees scheduled to work at a given hour
 df["num_workers"] = 2*df["6AM"] + 3*df["7AM"] + 4*df["8AM"] + 4*df["9AM"] + 5*df["10AM"] + 5*df["11AM"] + 6*df["12PM"] + 6*df["1PM"] + 6*df["2PM"] + 4*df["3PM"] + 2*df["4PM"] + 1*df["5PM"] + 1*df["6PM"] + 1*df["7PM"] + 1*df["8PM"]
 
 # Call gets Queued
 df["queued"]  = 0
 df.loc[df.disposition_time > 10,"queued"] = 1
 
-del time_period
+# Time Stamp
+# Create a timestamp field for each obersvation
+date_stamp = []
+for a in zip(df["date"].dt.year.tolist(),df["date"].dt.month.tolist(),df["date"].dt.day.tolist()):
+    if a[1] < 10:
+        if a[2] < 10:
+            date_stamp.append(str(a[0]) + "0" + str(a[1]) + "0" + str(a[2]))
+        else:
+            date_stamp.append(str(a[0]) + "0" + str(a[1]) + str(a[2]))            
+    else:
+        if a[2] < 10:
+            date_stamp.append(str(a[0]) + str(a[1]) + "0" + str(a[2]))
+        else:
+            date_stamp.append(str(a[0]) + str(a[1]) + str(a[2]))
+
+time_stamp = []
+for a in zip(df["start_time"].str[:2],df["start_time"].str[-4:-2]):
+    if ":" in a[0]:
+        time_stamp.append("0" + str(a[0][0]) + str(a[1]))
+    else:
+        time_stamp.append(str(a[0]) + str(a[1]))
+
+time_of_day = df["start_time"].str[-2:]
+clock_stamp = []
+for a in zip(time_stamp, time_of_day):
+    if a[1] == 'AM':
+        if a[0][:2] == "12":
+            
+            clock_stamp.append(str(int(a[0]) + 1200))
+        else:
+            clock_stamp.append(a[0])
+    else:
+        if int(a[0]) < 1000:
+            clock_stamp.append(str(int(a[0]) + 1200))
+        else:
+            clock_stamp.append(a[0])
+
+time_stamp = [int(m+n) for m,n in zip(date_stamp, clock_stamp)]
+time_stamp = np.array(time_stamp)
+df["timestamp"] = time_stamp
+
+del time_period, time_stamp, keep, time_of_day, clock_stamp
 del month
 del weekday
 del call_area_code
 del hour
+del date_stamp
+del a
 
 df = df.fillna(0)
 
