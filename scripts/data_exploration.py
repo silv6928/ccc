@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 df = pd.read_csv("C:/Users/Anthony Silva/silvat/ccc/data/df.csv", sep=",", index_col=0)
+df = df.sort_values(by=["timestamp"], ascending=[True])
 
 print(df.head())
 
